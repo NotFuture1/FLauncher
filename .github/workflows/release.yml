@@ -30,11 +30,6 @@ jobs:
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          submodules: "true"
-          path: "FLauncher-source"
       - name: Download artifacts
         uses: actions/download-artifact@v8
       - name: Grab and store version
@@ -43,49 +38,13 @@ jobs:
           echo "VERSION=$tag_name" >> $GITHUB_ENV
       - name: Package artifacts properly
         run: |
-          mv ${{ github.workspace }}/FLauncher-source FLauncher-${{ env.VERSION }}
-          mv FLauncher-Linux-Qt6-Portable*/FLauncher-portable.tar.gz FLauncher-Linux-Qt6-Portable-${{ env.VERSION }}.tar.gz
-          mv FLauncher-Linux-aarch64-Qt6-Portable*/FLauncher-portable.tar.gz FLauncher-Linux-aarch64-Qt6-Portable-${{ env.VERSION }}.tar.gz
-          mv FLauncher-*.AppImage/FLauncher-*-x86_64.AppImage FLauncher-Linux-x86_64.AppImage
-          mv FLauncher-*.AppImage.zsync/FLauncher-*-x86_64.AppImage.zsync FLauncher-Linux-x86_64.AppImage.zsync
-          mv FLauncher-*.AppImage/FLauncher-*-aarch64.AppImage FLauncher-Linux-aarch64.AppImage
-          mv FLauncher-*.AppImage.zsync/FLauncher-*-aarch64.AppImage.zsync FLauncher-Linux-aarch64.AppImage.zsync
-          mv FLauncher-macOS*/FLauncher.zip FLauncher-macOS-${{ env.VERSION }}.zip
-          mv FLauncher-macOS*/FLauncher.dmg FLauncher-macOS-${{ env.VERSION }}.dmg
-
-          tar --exclude='.git' -czf FLauncher-${{ env.VERSION }}.tar.gz FLauncher-${{ env.VERSION }}
-
+          # FLauncher only ships Windows (MSVC x64) builds; other platform
+          # packaging was removed — see upstream release.yml to restore it.
           for d in FLauncher-Windows-MSVC*; do
             cd "${d}" || continue
-            LEGACY="$(echo -n ${d} | grep -o Legacy || true)"
-            ARM64="$(echo -n ${d} | grep -o arm64 || true)"
             INST="$(echo -n ${d} | grep -o Setup || true)"
             PORT="$(echo -n ${d} | grep -o Portable || true)"
             NAME="FLauncher-Windows-MSVC"
-            test -z "${LEGACY}" || NAME="${NAME}-Legacy"
-            test -z "${ARM64}" || NAME="${NAME}-arm64"
-            test -z "${PORT}" || NAME="${NAME}-Portable"
-            test -z "${INST}" || mv FLauncher-*.exe ../${NAME}-Setup-${{ env.VERSION }}.exe
-            test -n "${INST}" || zip -r -9 "../${NAME}-${{ env.VERSION }}.zip" *
-            cd ..
-          done
-
-          for d in FLauncher-Windows-MinGW-w64*; do
-            cd "${d}" || continue
-            INST="$(echo -n ${d} | grep -o Setup || true)"
-            PORT="$(echo -n ${d} | grep -o Portable || true)"
-            NAME="FLauncher-Windows-MinGW-w64"
-            test -z "${PORT}" || NAME="${NAME}-Portable"
-            test -z "${INST}" || mv FLauncher-*.exe ../${NAME}-Setup-${{ env.VERSION }}.exe
-            test -n "${INST}" || zip -r -9 "../${NAME}-${{ env.VERSION }}.zip" *
-            cd ..
-          done
-
-          for d in FLauncher-Windows-MinGW-arm64*; do
-            cd "${d}" || continue
-            INST="$(echo -n ${d} | grep -o Setup || true)"
-            PORT="$(echo -n ${d} | grep -o Portable || true)"
-            NAME="FLauncher-Windows-MinGW-arm64"
             test -z "${PORT}" || NAME="${NAME}-Portable"
             test -z "${INST}" || mv FLauncher-*.exe ../${NAME}-Setup-${{ env.VERSION }}.exe
             test -n "${INST}" || zip -r -9 "../${NAME}-${{ env.VERSION }}.zip" *
@@ -99,28 +58,10 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ github.ref }}
           name: FLauncher ${{ env.VERSION }}
-          draft: true
+          draft: false
           prerelease: false
           fail_on_unmatched_files: true
           files: |
-            FLauncher-Linux-x86_64.AppImage
-            FLauncher-Linux-x86_64.AppImage.zsync
-            FLauncher-Linux-aarch64.AppImage
-            FLauncher-Linux-aarch64.AppImage.zsync
-            FLauncher-Linux-Qt6-Portable-${{ env.VERSION }}.tar.gz
-            FLauncher-Linux-aarch64-Qt6-Portable-${{ env.VERSION }}.tar.gz
-            FLauncher-Windows-MinGW-w64-${{ env.VERSION }}.zip
-            FLauncher-Windows-MinGW-w64-Portable-${{ env.VERSION }}.zip
-            FLauncher-Windows-MinGW-w64-Setup-${{ env.VERSION }}.exe
-            FLauncher-Windows-MinGW-arm64-${{ env.VERSION }}.zip
-            FLauncher-Windows-MinGW-arm64-Portable-${{ env.VERSION }}.zip
-            FLauncher-Windows-MinGW-arm64-Setup-${{ env.VERSION }}.exe
-            FLauncher-Windows-MSVC-arm64-${{ env.VERSION }}.zip
-            FLauncher-Windows-MSVC-arm64-Portable-${{ env.VERSION }}.zip
-            FLauncher-Windows-MSVC-arm64-Setup-${{ env.VERSION }}.exe
             FLauncher-Windows-MSVC-${{ env.VERSION }}.zip
             FLauncher-Windows-MSVC-Portable-${{ env.VERSION }}.zip
             FLauncher-Windows-MSVC-Setup-${{ env.VERSION }}.exe
-            FLauncher-macOS-${{ env.VERSION }}.zip
-            FLauncher-macOS-${{ env.VERSION }}.dmg
-            FLauncher-${{ env.VERSION }}.tar.gz
