@@ -1101,6 +1101,8 @@ SET(LAUNCHER_SOURCES
     ui/dialogs/ChooseOfflineNameDialog.h
     ui/dialogs/AccountImportDialog.cpp
     ui/dialogs/AccountImportDialog.h
+    ui/dialogs/LinkabilityReportDialog.cpp
+    ui/dialogs/LinkabilityReportDialog.h
 
     ui/dialogs/skins/SkinManageDialog.cpp
     ui/dialogs/skins/SkinManageDialog.h

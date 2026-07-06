@@ -650,6 +650,10 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
         // Account privacy: refuse to launch an account-locked instance with any
         // other account. Kill switch — turn off to restore silent fallback.
         m_settings->registerSetting("EnforceInstanceAccountBinding", true);
+        // Pre-launch safety gate (proxy/IP check). Kill switch — turn off to skip.
+        m_settings->registerSetting("EnableSafeLaunchGate", true);
+        // Stream-safe mode: mask account usernames and proxy addresses in the UI.
+        m_settings->registerSetting("StreamSafeMode", false);
 
         m_settings->registerSetting("NumberOfConcurrentTasks", 10);
         m_settings->registerSetting("NumberOfConcurrentDownloads", 6);

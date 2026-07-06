@@ -489,6 +489,33 @@
             </property>
            </widget>
           </item>
+          <item>
+           <widget class="QCheckBox" name="enableSafeLaunchGateCheckBox">
+            <property name="toolTip">
+             <string>Before launching an instance that uses a proxy, check that the proxy is reachable and actually changes your IP address. If the check fails you can cancel or launch anyway. Turn this off to skip the check entirely.</string>
+            </property>
+            <property name="text">
+             <string>Check proxy before launching a proxied instance (recommended)</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="streamSafeModeCheckBox">
+            <property name="toolTip">
+             <string>Hide account usernames and proxy addresses in the launcher's interface, so they aren't revealed while streaming or screen-sharing.</string>
+            </property>
+            <property name="text">
+             <string>Stream-safe mode (mask usernames and proxy addresses)</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="openPrivacyReportButton">
+            <property name="text">
+             <string>Open Linkability Report…</string>
+            </property>
+           </widget>
+          </item>
          </layout>
         </widget>
        </item>

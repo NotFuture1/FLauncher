@@ -408,6 +408,118 @@ It is most likely you will need to change the path - please refer to the mod's w
             </widget>
            </item>
            <item>
+            <widget class="QGroupBox" name="instanceProxyGroupBox">
+             <property name="title">
+              <string>Route This Instance Through a Pro&amp;xy</string>
+             </property>
+             <property name="checkable">
+              <bool>true</bool>
+             </property>
+             <property name="checked">
+              <bool>false</bool>
+             </property>
+             <layout class="QFormLayout" name="proxyFormLayout">
+              <item row="0" column="0">
+               <widget class="QLabel" name="instanceProxyTypeLabel">
+                <property name="text">
+                 <string>Type:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="1">
+               <widget class="QComboBox" name="instanceProxyType">
+                <item>
+                 <property name="text">
+                  <string>SOCKS5</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>HTTP</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="instanceProxyHostLabel">
+                <property name="text">
+                 <string>Host:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="QLineEdit" name="instanceProxyHost">
+                <property name="placeholderText">
+                 <string>proxy host or IP</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="0">
+               <widget class="QLabel" name="instanceProxyPortLabel">
+                <property name="text">
+                 <string>Port:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="1">
+               <widget class="QSpinBox" name="instanceProxyPort">
+                <property name="maximum">
+                 <number>65535</number>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="0">
+               <widget class="QLabel" name="instanceProxyUserLabel">
+                <property name="text">
+                 <string>Username:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="1">
+               <widget class="QLineEdit" name="instanceProxyUser">
+                <property name="placeholderText">
+                 <string>optional</string>
+                </property>
+               </widget>
+              </item>
+              <item row="4" column="0">
+               <widget class="QLabel" name="instanceProxyPasswordLabel">
+                <property name="text">
+                 <string>Password:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="4" column="1">
+               <widget class="QLineEdit" name="instanceProxyPassword">
+                <property name="echoMode">
+                 <enum>QLineEdit::Password</enum>
+                </property>
+                <property name="placeholderText">
+                 <string>optional</string>
+                </property>
+               </widget>
+              </item>
+              <item row="5" column="0">
+               <widget class="QLabel" name="instanceLocaleLabel">
+                <property name="text">
+                 <string>Game language:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="5" column="1">
+               <widget class="QLineEdit" name="instanceLocaleOverride">
+                <property name="toolTip">
+                 <string>Optional locale override so this instance's client language matches its proxy region, e.g. de_DE. Leave empty to use the default.</string>
+                </property>
+                <property name="placeholderText">
+                 <string>e.g. de_DE (optional)</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
             <widget class="QGroupBox" name="serverJoinGroupBox">
              <property name="title">
               <string>Enable Auto-&amp;join</string>

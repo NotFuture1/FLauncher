@@ -58,6 +58,7 @@ MinecraftSettingsWidget::MinecraftSettingsWidget(MinecraftInstance* instance, QW
 
         m_ui->openGlobalSettingsButton->setVisible(false);
         m_ui->instanceAccountGroupBox->hide();
+        m_ui->instanceProxyGroupBox->hide();
         m_ui->serverJoinGroupBox->hide();
         m_ui->globalDataPacksGroupBox->hide();
         m_ui->loaderGroup->hide();
@@ -250,6 +251,14 @@ void MinecraftSettingsWidget::loadSettings()
 
         m_ui->instanceAccountGroupBox->setChecked(settings->get("UseAccountForInstance").toBool());
         updateAccountsMenu(*settings);
+
+        m_ui->instanceProxyGroupBox->setChecked(settings->get("UseProxyForInstance").toBool());
+        m_ui->instanceProxyType->setCurrentIndex(settings->get("InstanceProxyType").toString() == "http" ? 1 : 0);
+        m_ui->instanceProxyHost->setText(settings->get("InstanceProxyHost").toString());
+        m_ui->instanceProxyPort->setValue(settings->get("InstanceProxyPort").toInt());
+        m_ui->instanceProxyUser->setText(settings->get("InstanceProxyUser").toString());
+        m_ui->instanceProxyPassword->setText(settings->get("InstanceProxyPassword").toString());
+        m_ui->instanceLocaleOverride->setText(settings->get("InstanceLanguageOverride").toString());
 
         auto blockSignalsCheckBoxes = { m_ui->neoForge, m_ui->forge,     m_ui->fabric,       m_ui->quilt,   m_ui->liteLoader,
                                         m_ui->babric,   m_ui->btaBabric, m_ui->legacyFabric, m_ui->ornithe, m_ui->rift };
@@ -469,6 +478,29 @@ void MinecraftSettingsWidget::saveSettings()
             } else {
                 settings->reset("InstanceAccountId");
             }
+
+            // Per-instance proxy and locale
+            bool useProxyForInstance = m_ui->instanceProxyGroupBox->isChecked();
+            settings->set("UseProxyForInstance", useProxyForInstance);
+            if (useProxyForInstance) {
+                settings->set("InstanceProxyType", m_ui->instanceProxyType->currentIndex() == 1 ? "http" : "socks5");
+                settings->set("InstanceProxyHost", m_ui->instanceProxyHost->text().trimmed());
+                settings->set("InstanceProxyPort", m_ui->instanceProxyPort->value());
+                settings->set("InstanceProxyUser", m_ui->instanceProxyUser->text());
+                settings->set("InstanceProxyPassword", m_ui->instanceProxyPassword->text());
+            } else {
+                settings->reset("InstanceProxyType");
+                settings->reset("InstanceProxyHost");
+                settings->reset("InstanceProxyPort");
+                settings->reset("InstanceProxyUser");
+                settings->reset("InstanceProxyPassword");
+            }
+
+            const QString localeOverride = m_ui->instanceLocaleOverride->text().trimmed();
+            if (localeOverride.isEmpty())
+                settings->reset("InstanceLanguageOverride");
+            else
+                settings->set("InstanceLanguageOverride", localeOverride);
         }
 
         bool overrideLegacySettings = m_instance == nullptr || m_ui->legacySettingsGroupBox->isChecked();

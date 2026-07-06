@@ -56,6 +56,9 @@
 #include <FileSystem.h>
 #include <QSaveFile>
 
+#include "Application.h"
+#include "settings/SettingsObject.h"
+
 enum AccountListVersion { MojangMSA = 3 };
 
 AccountList::AccountList(QObject* parent) : QAbstractListModel(parent)
@@ -340,6 +343,9 @@ QVariant AccountList::data(const QModelIndex& index, int role) const
         case Qt::DisplayRole:
             switch (index.column()) {
                 case ProfileNameColumn:
+                    // Stream-safe mode hides usernames so they aren't exposed on stream.
+                    if (APPLICATION->settings()->get("StreamSafeMode").toBool())
+                        return tr("Account %1").arg(index.row() + 1);
                     return account->profileName();
                 case TypeColumn: {
                     switch (account->accountType()) {

@@ -250,6 +250,16 @@ void MinecraftInstance::loadSpecificSettings()
     m_settings->registerSetting("UseAccountForInstance", false);
     m_settings->registerSetting("InstanceAccountId", "");
 
+    // Account privacy: per-instance proxy and locale so each account keeps a
+    // distinct, consistent network identity.
+    m_settings->registerSetting("UseProxyForInstance", false);
+    m_settings->registerSetting("InstanceProxyType", "socks5");  // socks5 | http
+    m_settings->registerSetting("InstanceProxyHost", "");
+    m_settings->registerSetting("InstanceProxyPort", 0);
+    m_settings->registerSetting("InstanceProxyUser", "");
+    m_settings->registerSetting("InstanceProxyPassword", "");
+    m_settings->registerSetting("InstanceLanguageOverride", "");  // e.g. "de_DE"; empty = default
+
     m_settings->registerSetting("ExportName", "");
     m_settings->registerSetting("ExportVersion", "1.0.0");
     m_settings->registerSetting("ExportSummary", "");
@@ -571,7 +581,36 @@ QStringList MinecraftInstance::javaArguments()
 {
     QStringList args;
 
-    args << "-Duser.language=en";
+    // Locale: default to English (avoids locale-dependent bugs), but an instance
+    // may override it so its client locale matches its proxy/persona region.
+    const QString localeOverride = settings()->get("InstanceLanguageOverride").toString();
+    if (!localeOverride.isEmpty()) {
+        const QString lang = localeOverride.section('_', 0, 0);
+        const QString country = localeOverride.section('_', 1, 1);
+        if (!lang.isEmpty())
+            args << QString("-Duser.language=%1").arg(lang);
+        if (!country.isEmpty())
+            args << QString("-Duser.country=%1").arg(country);
+    } else {
+        args << "-Duser.language=en";
+    }
+
+    // Per-instance proxy: give the game JVM the proxy so its HTTP(S) traffic
+    // (session validation, Realms, skins) uses it. In-game server-connection
+    // routing is handled by the proxy mod via the FLAUNCHER_PROXY env var.
+    if (settings()->get("UseProxyForInstance").toBool()) {
+        const QString host = settings()->get("InstanceProxyHost").toString();
+        const int port = settings()->get("InstanceProxyPort").toInt();
+        const QString type = settings()->get("InstanceProxyType").toString();
+        if (!host.isEmpty() && port > 0) {
+            if (type == "http") {
+                args << QString("-Dhttp.proxyHost=%1").arg(host) << QString("-Dhttp.proxyPort=%1").arg(port)
+                     << QString("-Dhttps.proxyHost=%1").arg(host) << QString("-Dhttps.proxyPort=%1").arg(port);
+            } else {
+                args << QString("-DsocksProxyHost=%1").arg(host) << QString("-DsocksProxyPort=%1").arg(port);
+            }
+        }
+    }
 
     // custom args go first. we want to override them if we have our own here.
     args.append(extraArguments());
@@ -657,6 +696,20 @@ QMap<QString, QString> MinecraftInstance::getVariables()
     out.insert("INST_JAVA", QDir::toNativeSeparators(QDir(settings()->get("JavaPath").toString()).absolutePath()));
     out.insert("INST_JAVA_ARGS", javaArguments().join(' '));
     out.insert("NO_COLOR", "1");
+
+    // Expose the instance's bound proxy to mods (e.g. the in-game proxy mod)
+    // as scheme://[user:pass@]host:port.
+    if (settings()->get("UseProxyForInstance").toBool()) {
+        const QString proxyHost = settings()->get("InstanceProxyHost").toString();
+        const int proxyPort = settings()->get("InstanceProxyPort").toInt();
+        if (!proxyHost.isEmpty() && proxyPort > 0) {
+            const QString proxyType = settings()->get("InstanceProxyType").toString();
+            const QString proxyUser = settings()->get("InstanceProxyUser").toString();
+            const QString proxyPass = settings()->get("InstanceProxyPassword").toString();
+            const QString auth = proxyUser.isEmpty() ? QString() : QString("%1:%2@").arg(proxyUser, proxyPass);
+            out.insert("FLAUNCHER_PROXY", QString("%1://%2%3:%4").arg(proxyType, auth, proxyHost, QString::number(proxyPort)));
+        }
+    }
 #ifdef Q_OS_MACOS
     // get library for Steam overlay support
     QString steamDyldInsertLibraries = qEnvironmentVariable("STEAM_DYLD_INSERT_LIBRARIES");

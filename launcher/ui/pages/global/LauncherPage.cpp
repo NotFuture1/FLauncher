@@ -50,6 +50,7 @@
 #include "BuildConfig.h"
 #include "DesktopServices.h"
 #include "settings/SettingsObject.h"
+#include "ui/dialogs/LinkabilityReportDialog.h"
 #include "ui/themes/ITheme.h"
 #include "ui/themes/ThemeManager.h"
 #include "updater/ExternalUpdater.h"
@@ -78,6 +79,10 @@ LauncherPage::LauncherPage(QWidget* parent) : QWidget(parent), ui(new Ui::Launch
     loadSettings();
 
     ui->updateSettingsBox->setHidden(!APPLICATION->updater());
+
+    connect(ui->openPrivacyReportButton, &QPushButton::clicked, this, [this] {
+        LinkabilityReportDialog(this).exec();
+    });
 }
 
 LauncherPage::~LauncherPage()
@@ -204,6 +209,8 @@ void LauncherPage::applySettings()
 
     s->set("MenuBarInsteadOfToolBar", ui->preferMenuBarCheckBox->isChecked());
     s->set("EnforceInstanceAccountBinding", ui->enforceInstanceAccountCheckBox->isChecked());
+    s->set("EnableSafeLaunchGate", ui->enableSafeLaunchGateCheckBox->isChecked());
+    s->set("StreamSafeMode", ui->streamSafeModeCheckBox->isChecked());
 
     s->set("NumberOfConcurrentTasks", ui->numberOfConcurrentTasksSpinBox->value());
     s->set("NumberOfConcurrentDownloads", ui->numberOfConcurrentDownloadsSpinBox->value());
@@ -266,6 +273,8 @@ void LauncherPage::loadSettings()
 
     ui->preferMenuBarCheckBox->setChecked(s->get("MenuBarInsteadOfToolBar").toBool());
     ui->enforceInstanceAccountCheckBox->setChecked(s->get("EnforceInstanceAccountBinding").toBool());
+    ui->enableSafeLaunchGateCheckBox->setChecked(s->get("EnableSafeLaunchGate").toBool());
+    ui->streamSafeModeCheckBox->setChecked(s->get("StreamSafeMode").toBool());
 
     ui->numberOfConcurrentTasksSpinBox->setValue(s->get("NumberOfConcurrentTasks").toInt());
     ui->numberOfConcurrentDownloadsSpinBox->setValue(s->get("NumberOfConcurrentDownloads").toInt());

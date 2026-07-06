@@ -48,9 +48,15 @@
 #include "ui/dialogs/ProfileSetupDialog.h"
 #include "ui/dialogs/ProgressDialog.h"
 
+#include <QEventLoop>
 #include <QInputDialog>
 #include <QList>
+#include <QNetworkAccessManager>
+#include <QNetworkProxy>
+#include <QNetworkReply>
+#include <QNetworkRequest>
 #include <QPushButton>
+#include <QTimer>
 #include <utility>
 
 #include "BuildConfig.h"
@@ -143,6 +149,83 @@ void LaunchController::decideAccount()
             accounts->setDefaultAccount(m_accountToUse);
         }
     }
+}
+
+// Resolve this machine's public IP as seen through the given proxy, with a timeout.
+// Returns an empty string if the request failed or timed out.
+static QString fetchExitIp(const QNetworkProxy& proxy, int timeoutMs)
+{
+    QNetworkAccessManager nam;
+    nam.setProxy(proxy);
+    QNetworkRequest request(QUrl("https://api.ipify.org"));
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
+    QNetworkReply* reply = nam.get(request);
+
+    QEventLoop loop;
+    QTimer timer;
+    timer.setSingleShot(true);
+    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    QObject::connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
+    timer.start(timeoutMs);
+    loop.exec();
+
+    QString ip;
+    if (reply->isFinished() && reply->error() == QNetworkReply::NoError)
+        ip = QString::fromUtf8(reply->readAll()).trimmed();
+    if (reply->isRunning())
+        reply->abort();
+    reply->deleteLater();
+    return ip;
+}
+
+bool LaunchController::checkSafeLaunch()
+{
+    auto instanceSettings = m_instance->settings();
+
+    // Master kill switch for the whole safe-launch gate.
+    if (!APPLICATION->settings()->get("EnableSafeLaunchGate").toBool())
+        return true;
+
+    // Only instances that opt into a proxy need the network checks;
+    // normal instances are completely unaffected.
+    if (!instanceSettings->get("UseProxyForInstance").toBool())
+        return true;
+
+    const QString host = instanceSettings->get("InstanceProxyHost").toString();
+    const int port = instanceSettings->get("InstanceProxyPort").toInt();
+    const QString type = instanceSettings->get("InstanceProxyType").toString();
+
+    QString problem;
+    if (host.isEmpty() || port <= 0) {
+        problem = tr("This instance is set to use a proxy, but the proxy address is incomplete.");
+    } else {
+        QNetworkProxy proxy(type == "http" ? QNetworkProxy::HttpProxy : QNetworkProxy::Socks5Proxy, host,
+                            static_cast<quint16>(port));
+        const QString user = instanceSettings->get("InstanceProxyUser").toString();
+        if (!user.isEmpty()) {
+            proxy.setUser(user);
+            proxy.setPassword(instanceSettings->get("InstanceProxyPassword").toString());
+        }
+
+        const QString proxiedIp = fetchExitIp(proxy, 8000);
+        if (proxiedIp.isEmpty()) {
+            problem = tr("The proxy for this instance could not be reached, so the game would connect using your real IP address.");
+        } else {
+            const QString directIp = fetchExitIp(QNetworkProxy(QNetworkProxy::NoProxy), 5000);
+            if (!directIp.isEmpty() && directIp == proxiedIp)
+                problem = tr("The proxy is reachable but isn't changing your IP address (its exit IP matches your real IP).");
+        }
+    }
+
+    if (problem.isEmpty())
+        return true;
+
+    auto* box = CustomMessageBox::selectable(
+        m_parentWidget, tr("Proxy Check Failed"),
+        tr("%1\n\nLaunching now could reveal that this account belongs to you. Launch anyway?").arg(problem),
+        QMessageBox::Warning, QMessageBox::Cancel | QMessageBox::Yes, QMessageBox::Cancel);
+    box->button(QMessageBox::Yes)->setText(tr("Launch Anyway"));
+    return box->exec() == QMessageBox::Yes;
 }
 
 LaunchDecision LaunchController::decideLaunchMode()
@@ -303,6 +386,11 @@ void LaunchController::login()
                       "The launch was cancelled so the instance doesn't start with a different account. "
                       "Re-add the correct account, or change this instance's account in its settings "
                       "(Edit Instance → Settings → Minecraft)."));
+        return;
+    }
+
+    if (!checkSafeLaunch()) {
+        emitAborted();
         return;
     }
 

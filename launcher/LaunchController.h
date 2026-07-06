@@ -76,6 +76,9 @@ class LaunchController : public Task {
     void login();
     void launchInstance();
     void decideAccount();
+    //! Pre-launch safety gate: verifies a proxied instance's proxy is up and changes the IP.
+    //! Returns true to proceed, false to abort. No-op unless the instance uses a proxy and the gate is enabled.
+    bool checkSafeLaunch();
     LaunchDecision decideLaunchMode();
     bool askPlayDemo() const;
     QString askOfflineName(const QString& playerName, bool* ok = nullptr);
