@@ -70,13 +70,7 @@
 ModFolderPage::ModFolderPage(BaseInstance* inst, ModFolderModel* model, QWidget* parent)
     : ExternalResourcesPage(inst, model, parent), m_model(model)
 {
-    ui->actionDownloadItem->setText(tr("Download Mods"));
-    ui->actionDownloadItem->setToolTip(tr("Download mods from online mod platforms"));
-    ui->actionDownloadItem->setEnabled(true);
-    ui->actionsToolbar->insertActionBefore(ui->actionAddItem, ui->actionDownloadItem);
-
-    connect(ui->actionDownloadItem, &QAction::triggered, this, &ModFolderPage::downloadMods);
-
+    // FLauncher: online mod browser removed; local mod management stays.
     ui->actionUpdateItem->setToolTip(tr("Try to check or update all selected mods (all mods if none are selected)"));
     connect(ui->actionUpdateItem, &QAction::triggered, this, &ModFolderPage::updateMods);
     ui->actionsToolbar->insertActionBefore(ui->actionAddItem, ui->actionUpdateItem);

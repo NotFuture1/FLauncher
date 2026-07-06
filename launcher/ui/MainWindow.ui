@@ -218,13 +218,7 @@
     <addaction name="actionViewLog"/>
     <addaction name="actionAddToPATH"/>
     <addaction name="separator"/>
-    <addaction name="actionMATRIX"/>
-    <addaction name="actionDISCORD"/>
-    <addaction name="actionREDDIT"/>
-    <addaction name="separator"/>
-    <addaction name="actionMoreNews"/>
     <addaction name="actionCheckUpdate"/>
-    <addaction name="actionOpenWiki"/>
     <addaction name="actionAbout"/>
    </widget>
    <addaction name="fileMenu"/>

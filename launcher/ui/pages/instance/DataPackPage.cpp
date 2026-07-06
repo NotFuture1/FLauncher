@@ -28,13 +28,7 @@
 DataPackPage::DataPackPage(BaseInstance* instance, DataPackFolderModel* model, QWidget* parent)
     : ExternalResourcesPage(instance, model, parent), m_model(model)
 {
-    ui->actionDownloadItem->setText(tr("Download Packs"));
-    ui->actionDownloadItem->setToolTip(tr("Download data packs from online mod platforms"));
-    ui->actionDownloadItem->setEnabled(true);
-    ui->actionsToolbar->insertActionBefore(ui->actionAddItem, ui->actionDownloadItem);
-
-    connect(ui->actionDownloadItem, &QAction::triggered, this, &DataPackPage::downloadDataPacks);
-
+    // FLauncher: online pack browser removed.
     ui->actionUpdateItem->setToolTip(tr("Try to check or update all selected data packs (all data packs if none are selected)"));
     connect(ui->actionUpdateItem, &QAction::triggered, this, &DataPackPage::updateDataPacks);
     ui->actionsToolbar->insertActionBefore(ui->actionAddItem, ui->actionUpdateItem);
