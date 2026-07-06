@@ -54,6 +54,7 @@
    </attribute>
    <addaction name="actionAddMicrosoft"/>
    <addaction name="actionAddOffline"/>
+   <addaction name="actionImport"/>
    <addaction name="actionRefresh"/>
    <addaction name="actionRemove"/>
    <addaction name="actionSetDefault"/>
@@ -92,6 +93,14 @@
   <action name="actionAddOffline">
    <property name="text">
     <string>Add &amp;Offline</string>
+   </property>
+  </action>
+  <action name="actionImport">
+   <property name="text">
+    <string>&amp;Import from File</string>
+   </property>
+   <property name="toolTip">
+    <string>Import accounts from another launcher's JSON file (Prism, MultiMC, Essential, Feather)</string>
    </property>
   </action>
   <action name="actionRefresh">

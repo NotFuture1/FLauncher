@@ -38,12 +38,16 @@
 #include "ui/dialogs/skins/SkinManageDialog.h"
 #include "ui_AccountListPage.h"
 
+#include <QFileDialog>
 #include <QItemSelectionModel>
 #include <QMenu>
+#include <QMessageBox>
 #include <QPushButton>
 
 #include <QDebug>
 
+#include "minecraft/auth/AccountImport.h"
+#include "ui/dialogs/AccountImportDialog.h"
 #include "ui/dialogs/ChooseOfflineNameDialog.h"
 #include "ui/dialogs/CustomMessageBox.h"
 #include "ui/dialogs/MSALoginDialog.h"
@@ -160,6 +164,39 @@ void AccountListPage::on_actionAddOffline_triggered()
             m_accounts->setDefaultAccount(account);
         }
     }
+}
+
+void AccountListPage::on_actionImport_triggered()
+{
+    QString path = QFileDialog::getOpenFileName(this, tr("Import Accounts From File"), QString(),
+                                                tr("Account files (*.json);;All files (*)"));
+    if (path.isEmpty())
+        return;
+
+    QString sourceName;
+    QString error;
+    auto candidates = AccountImport::parseFile(path, sourceName, error);
+    if (candidates.isEmpty()) {
+        QMessageBox::warning(this, tr("Import Failed"), error);
+        return;
+    }
+
+    AccountImportDialog dialog(sourceName, candidates, this);
+    if (dialog.exec() != QDialog::Accepted)
+        return;
+
+    int added = 0;
+    for (const auto& candidate : dialog.selectedAccounts()) {
+        bool wasEmpty = m_accounts->count() == 0;
+        m_accounts->addAccount(candidate.account);
+        if (wasEmpty && m_accounts->count() == 1)
+            m_accounts->setDefaultAccount(candidate.account);
+        added++;
+    }
+
+    if (added > 0)
+        QMessageBox::information(this, tr("Accounts Imported"),
+                                tr("Imported %n account(s) from %1.", "", added).arg(sourceName));
 }
 
 void AccountListPage::on_actionRemove_triggered()

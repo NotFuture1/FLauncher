@@ -217,6 +217,8 @@ set(MINECRAFT_SOURCES
     # Minecraft support
     minecraft/auth/AccountData.cpp
     minecraft/auth/AccountData.h
+    minecraft/auth/AccountImport.cpp
+    minecraft/auth/AccountImport.h
     minecraft/auth/AccountList.cpp
     minecraft/auth/AccountList.h
     minecraft/auth/AuthSession.cpp
@@ -1097,6 +1099,8 @@ SET(LAUNCHER_SOURCES
     ui/dialogs/InstallLoaderDialog.h
     ui/dialogs/ChooseOfflineNameDialog.cpp
     ui/dialogs/ChooseOfflineNameDialog.h
+    ui/dialogs/AccountImportDialog.cpp
+    ui/dialogs/AccountImportDialog.h
 
     ui/dialogs/skins/SkinManageDialog.cpp
     ui/dialogs/skins/SkinManageDialog.h

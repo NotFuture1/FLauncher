@@ -114,6 +114,11 @@ class LoggingOAuthHttpServerReplyHandler final : public QOAuthHttpServerReplyHan
 MSAStep::MSAStep(AccountData* data, bool silent) : AuthStep(data), m_silent(silent)
 {
     m_clientId = APPLICATION->getMSAClientID();
+    // Accounts imported from another launcher carry the Microsoft client ID their
+    // refresh token was issued under. A refresh token only works with the client ID
+    // that created it, so reuse the account's stored client ID when it has one.
+    if (!m_data->msaClientID.isEmpty())
+        m_clientId = m_data->msaClientID;
     if (QCoreApplication::applicationFilePath().startsWith("/tmp/.mount_") || APPLICATION->isPortable() || !isSchemeHandlerRegistered())
 
     {
