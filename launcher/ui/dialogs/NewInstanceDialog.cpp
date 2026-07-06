@@ -37,7 +37,6 @@
 #include "NewInstanceDialog.h"
 #include "Application.h"
 #include "ui/pages/modplatform/ModpackProviderBasePage.h"
-#include "ui/pages/modplatform/import_ftb/ImportFTBPage.h"
 #include "ui_NewInstanceDialog.h"
 
 #include <BaseVersion.h>
@@ -59,12 +58,6 @@
 
 #include "ui/pages/modplatform/CustomPage.h"
 #include "ui/pages/modplatform/ImportPage.h"
-#include "ui/pages/modplatform/atlauncher/AtlPage.h"
-#include "ui/pages/modplatform/flame/FlamePage.h"
-#include "ui/pages/modplatform/ftb/FtbPage.h"
-#include "ui/pages/modplatform/legacy_ftb/Page.h"
-#include "ui/pages/modplatform/modrinth/ModrinthPage.h"
-#include "ui/pages/modplatform/technic/TechnicPage.h"
 #include "ui/widgets/PageContainer.h"
 
 NewInstanceDialog::NewInstanceDialog(const QString& initialGroup,
@@ -173,16 +166,10 @@ QList<BasePage*> NewInstanceDialog::getPages()
 
     importPage = new ImportPage(this);
 
+    // FLauncher: no modpack-platform pages (ATLauncher/CurseForge/FTB/Modrinth/Technic);
+    // instances are created custom or imported from a file/URL
     pages.append(new CustomPage(this));
     pages.append(importPage);
-    pages.append(new AtlPage(this));
-    if (APPLICATION->capabilities() & Application::SupportsFlame)
-        pages.append(new FlamePage(this));
-    pages.append(new FtbPage(this));
-    pages.append(new LegacyFTB::Page(this));
-    pages.append(new FTBImportAPP::ImportFTBPage(this));
-    pages.append(new ModrinthPage(this));
-    pages.append(new TechnicPage(this));
 
     return pages;
 }
