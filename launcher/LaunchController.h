@@ -97,6 +97,9 @@ class LaunchController : public Task {
     QWidget* m_parentWidget = nullptr;
     InstanceWindow* m_console = nullptr;
     MinecraftAccountPtr m_accountToUse = nullptr;
+    // Set when an instance is locked to a specific account that isn't available.
+    // The launch is refused rather than silently falling back to another account.
+    bool m_boundAccountUnavailable = false;
     AuthSessionPtr m_session = nullptr;
     LaunchTask* m_launcher = nullptr;
     MinecraftTarget::Ptr m_targetToJoin = nullptr;

@@ -474,6 +474,25 @@
         </widget>
        </item>
        <item>
+        <widget class="QGroupBox" name="accountPrivacyBox">
+         <property name="title">
+          <string>Account Privacy</string>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_accountPrivacy">
+          <item>
+           <widget class="QCheckBox" name="enforceInstanceAccountCheckBox">
+            <property name="toolTip">
+             <string>When an instance is locked to a specific account, refuse to launch it with any other account (for example, if the bound account was removed or its sign-in expired). This prevents an instance from ever starting with a different account. Turning this off restores the old behaviour of silently falling back to your default account.</string>
+            </property>
+            <property name="text">
+             <string>Lock instances to their assigned account (recommended)</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
         <widget class="QGroupBox" name="groupBox_2">
          <property name="title">
           <string>Console</string>

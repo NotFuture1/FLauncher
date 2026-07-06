@@ -78,6 +78,8 @@ void LaunchController::executeTask()
 
 void LaunchController::decideAccount()
 {
+    m_boundAccountUnavailable = false;
+
     if (m_accountToUse) {
         return;
     }
@@ -86,6 +88,22 @@ void LaunchController::decideAccount()
     auto* accounts = APPLICATION->accounts();
     const auto instanceAccountId = m_instance->settings()->get("InstanceAccountId").toString();
     const auto instanceAccountIndex = accounts->findAccountByProfileId(instanceAccountId);
+
+    // When an instance is locked to a specific account, that account is part of the
+    // instance's identity: launching it with any other account would link the two.
+    // If the bound account can't be found, refuse to launch instead of silently
+    // falling back to the default account. The global setting is a kill switch.
+    const bool boundToAccount = m_instance->settings()->get("UseAccountForInstance").toBool();
+    const bool enforceBinding = APPLICATION->settings()->get("EnforceInstanceAccountBinding").toBool();
+    if (boundToAccount && enforceBinding) {
+        if (instanceAccountIndex == -1 || instanceAccountId.isEmpty()) {
+            m_boundAccountUnavailable = true;
+            return;
+        }
+        m_accountToUse = accounts->at(instanceAccountIndex);
+        return;
+    }
+
     if (instanceAccountIndex == -1 || instanceAccountId.isEmpty()) {
         m_accountToUse = accounts->defaultAccount();
     } else {
@@ -278,6 +296,15 @@ QString LaunchController::askOfflineName(const QString& playerName, bool* ok)
 void LaunchController::login()
 {
     decideAccount();
+
+    if (m_boundAccountUnavailable) {
+        emitFailed(tr("This instance is locked to a specific account, but that account is no longer available "
+                      "(it may have been removed or its sign-in details changed).\n\n"
+                      "The launch was cancelled so the instance doesn't start with a different account. "
+                      "Re-add the correct account, or change this instance's account in its settings "
+                      "(Edit Instance → Settings → Minecraft)."));
+        return;
+    }
 
     LaunchDecision decision = decideLaunchMode();
     while (decision == LaunchDecision::Undecided) {

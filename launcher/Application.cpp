@@ -647,6 +647,10 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
 
         m_settings->registerSetting("MenuBarInsteadOfToolBar", false);
 
+        // Account privacy: refuse to launch an account-locked instance with any
+        // other account. Kill switch — turn off to restore silent fallback.
+        m_settings->registerSetting("EnforceInstanceAccountBinding", true);
+
         m_settings->registerSetting("NumberOfConcurrentTasks", 10);
         m_settings->registerSetting("NumberOfConcurrentDownloads", 6);
         m_settings->registerSetting("NumberOfManualRetries", 1);
