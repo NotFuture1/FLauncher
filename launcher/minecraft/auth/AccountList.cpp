@@ -39,14 +39,17 @@
 
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QIcon>
 #include <QIODevice>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonParseError>
+#include <QSet>
 #include <QTextStream>
 #include <QTimer>
+#include <algorithm>
 
 #include <QDebug>
 
@@ -440,52 +443,121 @@ bool AccountList::setData(const QModelIndex& idx, const QVariant& value, int rol
 
 bool AccountList::loadList()
 {
-    if (m_listFilePath.isEmpty()) {
-        qCritical() << "Can't load Mojang account list. No file path given and no default set.";
+    if (m_listFolderPath.isEmpty()) {
+        qCritical() << "Can't load Mojang account list. No folder path given and no default set.";
         return false;
     }
 
-    QFile file(m_listFilePath);
+    QDir folder(m_listFolderPath);
+    bool hasFolderData = folder.exists() && !folder.entryList({ "*.json" }, QDir::Files).isEmpty();
+    if (hasFolderData)
+        return loadFromFolder();
 
-    // Try to open the file and fail if we can't.
-    // TODO: We should probably report this error to the user.
+    // Migration: import the legacy single-file list (accounts.json), then write it back out
+    // as one file per account and set the old file aside as a backup.
+    QString legacyPath = m_listFolderPath + ".json";
+    if (QFile::exists(legacyPath)) {
+        qInfo() << "Migrating legacy account list" << legacyPath << "to per-account files in" << m_listFolderPath;
+        if (!loadLegacyList(legacyPath))
+            return false;
+        saveList();
+        QFile::rename(legacyPath, legacyPath + ".migrated");
+        return true;
+    }
+
+    // Nothing stored yet (fresh profile). Not an error.
+    return true;
+}
+
+bool AccountList::loadFromFolder()
+{
+    QDir folder(m_listFolderPath);
+    const auto files = folder.entryList({ "*.json" }, QDir::Files, QDir::Name);
+
+    struct Entry {
+        MinecraftAccountPtr account;
+        int index;
+        bool active;
+    };
+    QList<Entry> entries;
+    int fallbackIndex = 0;
+    for (const QString& fileName : files) {
+        QFile file(folder.filePath(fileName));
+        if (!file.open(QIODevice::ReadOnly)) {
+            qWarning() << "Failed to read account file" << fileName << ":" << file.errorString();
+            continue;
+        }
+        QByteArray data = file.readAll();
+        file.close();
+
+        QJsonParseError parseError;
+        QJsonDocument doc = QJsonDocument::fromJson(data, &parseError);
+        if (parseError.error != QJsonParseError::NoError || !doc.isObject()) {
+            qWarning() << "Skipping invalid account file" << fileName;
+            continue;
+        }
+
+        QJsonObject obj = doc.object();
+        MinecraftAccountPtr account = MinecraftAccount::loadFromJsonV3(obj);
+        if (!account) {
+            qWarning() << "Failed to load account from" << fileName;
+            continue;
+        }
+
+        int index = obj.contains("index") ? obj.value("index").toInt() : fallbackIndex;
+        bool active = obj.value("active").toBool(false);
+        entries.append({ account, index, active });
+        fallbackIndex++;
+    }
+
+    // Preserve the ordering that was saved with each account.
+    std::stable_sort(entries.begin(), entries.end(), [](const Entry& a, const Entry& b) { return a.index < b.index; });
+
+    beginResetModel();
+    for (const Entry& entry : entries) {
+        auto profileId = entry.account->profileId();
+        if (profileId.size() && findAccountByProfileId(profileId) != -1)
+            continue;
+        connect(entry.account.get(), &MinecraftAccount::changed, this, &AccountList::accountChanged);
+        connect(entry.account.get(), &MinecraftAccount::activityChanged, this, &AccountList::accountActivityChanged);
+        m_accounts.append(entry.account);
+        if (entry.active)
+            m_defaultAccount = entry.account;
+    }
+    endResetModel();
+    return true;
+}
+
+bool AccountList::loadLegacyList(const QString& filePath)
+{
+    QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly)) {
-        qCritical() << QString("Failed to read the account list file %1 (%2).").arg(m_listFilePath).arg(file.errorString()).toUtf8();
+        qCritical() << QString("Failed to read the account list file %1 (%2).").arg(filePath, file.errorString());
         return false;
     }
 
-    // Read the file and close it.
     QByteArray jsonData = file.readAll();
     file.close();
 
     QJsonParseError parseError;
     QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData, &parseError);
-
-    // Fail if the JSON is invalid.
     if (parseError.error != QJsonParseError::NoError) {
         qCritical() << QString("Failed to parse account list file: %1 at offset %2")
-                           .arg(parseError.errorString(), QString::number(parseError.offset))
-                           .toUtf8();
+                           .arg(parseError.errorString(), QString::number(parseError.offset));
         return false;
     }
 
-    // Make sure the root is an object.
     if (!jsonDoc.isObject()) {
-        qCritical() << "Invalid account list JSON: Root should be an array.";
+        qCritical() << "Invalid account list JSON: Root should be an object.";
         return false;
     }
 
     QJsonObject root = jsonDoc.object();
-
-    // Make sure the format version matches.
     auto listVersion = root.value("formatVersion").toVariant().toInt();
     if (listVersion == AccountListVersion::MojangMSA)
         return loadV3(root);
 
-    QString newName = "accounts-old.json";
-    qWarning() << "Unknown format version when loading account list. Existing one will be renamed to" << newName;
-    // Attempt to rename the old version.
-    file.rename(newName);
+    qWarning() << "Unknown format version when loading legacy account list.";
     return false;
 }
 
@@ -519,73 +591,65 @@ bool AccountList::loadV3(QJsonObject& root)
 
 bool AccountList::saveList()
 {
-    if (m_listFilePath.isEmpty()) {
-        qCritical() << "Can't save Mojang account list. No file path given and no default set.";
+    if (m_listFolderPath.isEmpty()) {
+        qCritical() << "Can't save Mojang account list. No folder path given and no default set.";
         return false;
     }
 
-    // make sure the parent folder exists
-    if (!FS::ensureFilePathExists(m_listFilePath))
-        return false;
+    // Make sure nothing is sitting where the folder should be, then (re)create it.
+    QFileInfo folderInfo(m_listFolderPath);
+    if (folderInfo.exists() && !folderInfo.isDir())
+        QFile::remove(m_listFolderPath);
 
-    // make sure the file wasn't overwritten with a folder before (fixes a bug)
-    QFileInfo finfo(m_listFilePath);
-    if (finfo.isDir()) {
-        QDir badDir(m_listFilePath);
-        badDir.removeRecursively();
+    QDir folder(m_listFolderPath);
+    if (!folder.mkpath(".")) {
+        qCritical() << "Failed to create account folder" << m_listFolderPath;
+        return false;
     }
 
-    qDebug() << "Writing account list to" << m_listFilePath;
+    qDebug() << "Writing" << m_accounts.count() << "accounts to" << m_listFolderPath;
 
-    qDebug() << "Building JSON data structure.";
-    // Build the JSON document to write to the list file.
-    QJsonObject root;
+    QSet<QString> written;
+    bool allOk = true;
+    for (int i = 0; i < m_accounts.size(); i++) {
+        MinecraftAccountPtr account = m_accounts[i];
 
-    root.insert("formatVersion", AccountListVersion::MojangMSA);
-
-    // Build a list of accounts.
-    qDebug() << "Building account array.";
-    QJsonArray accounts;
-    for (MinecraftAccountPtr account : m_accounts) {
         QJsonObject accountObj = account->saveToJson();
-        if (m_defaultAccount == account) {
+        accountObj["formatVersion"] = AccountListVersion::MojangMSA;
+        // Preserve list ordering and which account is the default.
+        accountObj["index"] = i;
+        if (m_defaultAccount == account)
             accountObj["active"] = true;
+
+        QString fileName = account->internalId() + ".json";
+        written.insert(fileName);
+
+        QSaveFile file(folder.filePath(fileName));
+        if (!file.open(QIODevice::WriteOnly)) {
+            qCritical() << "Failed to save account file" << fileName << ":" << file.errorString();
+            allOk = false;
+            continue;
         }
-        accounts.append(accountObj);
+        file.write(QJsonDocument(accountObj).toJson());
+        file.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ReadUser | QFile::WriteUser);
+        if (!file.commit()) {
+            qCritical() << "Failed to commit account file" << fileName << ":" << file.errorString();
+            allOk = false;
+        }
     }
 
-    // Insert the account list into the root object.
-    root.insert("accounts", accounts);
-
-    // Create a JSON document object to convert our JSON to bytes.
-    QJsonDocument doc(root);
-
-    // Now that we're done building the JSON object, we can write it to the file.
-    qDebug() << "Writing account list to file.";
-    QSaveFile file(m_listFilePath);
-
-    // Try to open the file and fail if we can't.
-    // TODO: We should probably report this error to the user.
-    if (!file.open(QIODevice::WriteOnly)) {
-        qCritical() << QString("Failed to save the account list file %1 (%2).").arg(m_listFilePath).arg(file.errorString()).toUtf8();
-        return false;
+    // Prune files belonging to accounts that were removed.
+    for (const QString& existing : folder.entryList({ "*.json" }, QDir::Files)) {
+        if (!written.contains(existing))
+            folder.remove(existing);
     }
 
-    // Write the JSON to the file.
-    file.write(doc.toJson());
-    file.setPermissions(QFile::ReadOwner | QFile::WriteOwner | QFile::ReadUser | QFile::WriteUser);
-    if (file.commit()) {
-        qDebug() << "Saved account list to" << m_listFilePath;
-        return true;
-    } else {
-        qDebug() << "Failed to save accounts to" << m_listFilePath << "error:" << file.errorString();
-        return false;
-    }
+    return allOk;
 }
 
-void AccountList::setListFilePath(QString path, bool autosave)
+void AccountList::setListFolderPath(QString path, bool autosave)
 {
-    m_listFilePath = path;
+    m_listFolderPath = path;
     m_autosave = autosave;
 }
 

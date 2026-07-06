@@ -88,13 +88,13 @@ class AccountList : public QAbstractListModel {
     void queueRefresh(QString accountId);
 
     /*!
-     * Sets the path to load/save the list file from/to.
-     * If autosave is true, this list will automatically save to the given path whenever it changes.
+     * Sets the folder that holds the per-account JSON files (one file per account).
+     * If autosave is true, this list will automatically save to that folder whenever it changes.
      * THIS FUNCTION DOES NOT LOAD THE LIST. If you set autosave, be sure to call loadList() immediately
      * after calling this function to ensure an autosaved change doesn't overwrite the list you intended
      * to load.
      */
-    void setListFilePath(QString path, bool autosave = false);
+    void setListFolderPath(QString path, bool autosave = false);
 
     bool loadList();
     bool loadV3(QJsonObject& root);
@@ -158,16 +158,21 @@ class AccountList : public QAbstractListModel {
      */
     void onDefaultAccountChanged();
 
+    //! Load accounts from the per-account files inside m_listFolderPath.
+    bool loadFromFolder();
+    //! Load accounts from the legacy single accounts.json file (for migration).
+    bool loadLegacyList(const QString& filePath);
+
     QList<MinecraftAccountPtr> m_accounts;
 
     MinecraftAccountPtr m_defaultAccount;
 
-    //! Path to the account list file. Empty string if there isn't one.
-    QString m_listFilePath;
+    //! Folder holding one JSON file per account. Empty string if there isn't one.
+    QString m_listFolderPath;
 
     /*!
-     * If true, the account list will automatically save to the account list path when it changes.
-     * Ignored if m_listFilePath is blank.
+     * If true, the account list will automatically save to the account folder when it changes.
+     * Ignored if m_listFolderPath is blank.
      */
     bool m_autosave = false;
 };

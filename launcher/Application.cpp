@@ -984,7 +984,7 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
     {
         m_accounts.reset(new AccountList(this));
         qInfo() << "Loading accounts...";
-        m_accounts->setListFilePath("accounts.json", true);
+        m_accounts->setListFolderPath("accounts", true);
         m_accounts->loadList();
         m_accounts->fillQueue();
         qInfo() << "<> Accounts loaded.";
