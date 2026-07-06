@@ -94,20 +94,20 @@ runs:
         echo "PRISMLAUNCHER_DISABLE_GLVULKAN=1" >> "$INSTALL_APPIMAGE_DIR"/.env
         #makes the launcher use portals for file picking
         echo "QT_QPA_PLATFORMTHEME=xdgdesktopportal" >> "$INSTALL_APPIMAGE_DIR"/.env
-        ln -s org.prismlauncher.PrismLauncher.metainfo.xml "$INSTALL_APPIMAGE_DIR"/share/metainfo/org.prismlauncher.PrismLauncher.appdata.xml
-        ln -s share/applications/org.prismlauncher.PrismLauncher.desktop "$INSTALL_APPIMAGE_DIR"
-        ln -s share/icons/hicolor/256x256/apps/org.prismlauncher.PrismLauncher.png "$INSTALL_APPIMAGE_DIR"
+        ln -s org.flauncher.FLauncher.metainfo.xml "$INSTALL_APPIMAGE_DIR"/share/metainfo/org.flauncher.FLauncher.appdata.xml
+        ln -s share/applications/org.flauncher.FLauncher.desktop "$INSTALL_APPIMAGE_DIR"
+        ln -s share/icons/hicolor/256x256/apps/org.flauncher.FLauncher.png "$INSTALL_APPIMAGE_DIR"
         mv "$INSTALL_APPIMAGE_DIR"/{sharun,AppRun}
         ls -la "$INSTALL_APPIMAGE_DIR"
 
         if [[ "${{ github.ref_type }}" == "tag" ]]; then
-          APPIMAGE_DEST="PrismLauncher-Linux-$APPIMAGE_ARCH.AppImage"
+          APPIMAGE_DEST="FLauncher-Linux-$APPIMAGE_ARCH.AppImage"
         else
-          APPIMAGE_DEST="PrismLauncher-Linux-$VERSION-${{ inputs.build-type }}-$APPIMAGE_ARCH.AppImage"
+          APPIMAGE_DEST="FLauncher-Linux-$VERSION-${{ inputs.build-type }}-$APPIMAGE_ARCH.AppImage"
         fi
 
         mkappimage \
-          --updateinformation "gh-releases-zsync|${{ github.repository_owner }}|${{ github.event.repository.name }}|latest|PrismLauncher-Linux-$APPIMAGE_ARCH.AppImage.zsync" \
+          --updateinformation "gh-releases-zsync|${{ github.repository_owner }}|${{ github.event.repository.name }}|latest|FLauncher-Linux-$APPIMAGE_ARCH.AppImage.zsync" \
           "$INSTALL_APPIMAGE_DIR" \
           "$APPIMAGE_DEST"
 
@@ -132,22 +132,22 @@ runs:
 
         for l in $(find ${{ env.INSTALL_PORTABLE_DIR }} -type f -o -type l); do l=${l#$(pwd)/}; l=${l#${{ env.INSTALL_PORTABLE_DIR }}/}; l=${l#./}; echo $l; done > ${{ env.INSTALL_PORTABLE_DIR }}/manifest.txt
         cd ${{ env.INSTALL_PORTABLE_DIR }}
-        tar -czf ../PrismLauncher-portable.tar.gz *
+        tar -czf ../FLauncher-portable.tar.gz *
 
     - name: Upload binary tarball
       uses: actions/upload-artifact@v7
       with:
-        name: PrismLauncher-${{ inputs.artifact-name }}-Qt6-Portable-${{ inputs.version }}-${{ inputs.build-type }}
-        path: PrismLauncher-portable.tar.gz
+        name: FLauncher-${{ inputs.artifact-name }}-Qt6-Portable-${{ inputs.version }}-${{ inputs.build-type }}
+        path: FLauncher-portable.tar.gz
 
     - name: Upload AppImage
       uses: actions/upload-artifact@v7
       with:
-        name: PrismLauncher-${{ runner.os }}-${{ inputs.version }}-${{ inputs.build-type }}-${{ env.APPIMAGE_ARCH }}.AppImage
-        path: PrismLauncher-${{ runner.os }}-*${{ env.APPIMAGE_ARCH }}.AppImage
+        name: FLauncher-${{ runner.os }}-${{ inputs.version }}-${{ inputs.build-type }}-${{ env.APPIMAGE_ARCH }}.AppImage
+        path: FLauncher-${{ runner.os }}-*${{ env.APPIMAGE_ARCH }}.AppImage
 
     - name: Upload AppImage Zsync
       uses: actions/upload-artifact@v7
       with:
-        name: PrismLauncher-${{ runner.os }}-${{ inputs.version }}-${{ inputs.build-type }}-${{ env.APPIMAGE_ARCH }}.AppImage.zsync
-        path: PrismLauncher-${{ runner.os }}-*${{ env.APPIMAGE_ARCH }}.AppImage.zsync
+        name: FLauncher-${{ runner.os }}-${{ inputs.version }}-${{ inputs.build-type }}-${{ env.APPIMAGE_ARCH }}.AppImage.zsync
+        path: FLauncher-${{ runner.os }}-*${{ env.APPIMAGE_ARCH }}.AppImage.zsync
