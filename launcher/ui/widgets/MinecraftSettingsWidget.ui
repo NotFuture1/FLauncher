@@ -894,6 +894,79 @@ It is most likely you will need to change the path - please refer to the mod's w
                 </property>
                </widget>
               </item>
+              <item>
+               <widget class="QCheckBox" name="enableOptimizedFlagsCheck">
+                <property name="toolTip">
+                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Add tuned garbage-collector flags to the Java command line, chosen for your Java version and RAM. Targets stutter and frame-time consistency rather than average FPS. Any flag you set yourself in the Java arguments box overrides the generated ones.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                </property>
+                <property name="text">
+                 <string>Auto-optimized JVM flags (GC tuning)</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QComboBox" name="optimizedFlagsPresetCombo">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
+                <property name="toolTip">
+                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Balanced tunes the G1 collector for short, predictable pauses — the right choice for almost everyone, including 1.8.9. Low latency uses ZGC for near-zero pauses; it needs Java 21+, a 6 GB+ heap and 16 GB+ RAM, and silently falls back to Balanced otherwise.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                </property>
+                <item>
+                 <property name="text">
+                  <string>Balanced (G1) — recommended</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>Low latency (ZGC, Java 21+, 16 GB+ RAM)</string>
+                 </property>
+                </item>
+               </widget>
+              </item>
+              <item>
+               <widget class="QCheckBox" name="smartHeapSizingCheck">
+                <property name="toolTip">
+                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Pick the Java heap size (-Xmx) automatically from installed RAM and the game's Java version, instead of the values in the Java settings. A per-instance Memory override always wins over this.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                </property>
+                <property name="text">
+                 <string>Automatically size memory (-Xmx)</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="processPriorityLayout">
+                <item>
+                 <widget class="QLabel" name="processPriorityLabel">
+                  <property name="text">
+                   <string>Game process priority:</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QComboBox" name="processPriorityCombo">
+                  <property name="toolTip">
+                   <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Give the game process more CPU time than background applications. Above normal is the recommended non-default; High can starve audio and system tasks on weak CPUs. Not applied when a wrapper command is used.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                  </property>
+                  <item>
+                   <property name="text">
+                    <string>Normal</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>Above normal (recommended)</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>High</string>
+                   </property>
+                  </item>
+                 </widget>
+                </item>
+               </layout>
+              </item>
              </layout>
             </widget>
            </item>

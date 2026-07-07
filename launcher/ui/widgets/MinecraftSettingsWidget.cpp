@@ -128,8 +128,21 @@ MinecraftSettingsWidget::MinecraftSettingsWidget(MinecraftInstance* instance, QW
     connect(m_ui->maximizedCheckBox, &QCheckBox::toggled, this,
             [this](const bool value) { m_ui->maximizedWarning->setVisible(value && (m_instance == nullptr || !m_instance->isLegacy())); });
 
-#if !defined(Q_OS_LINUX)
-    m_ui->perfomanceGroupBox->hide();
+    // the performance group mixes platform-specific toggles; hide what doesn't apply
+#if defined(Q_OS_WIN)
+    m_ui->enableFeralGamemodeCheck->hide();
+    m_ui->enableMangoHud->hide();
+    m_ui->useZink->hide();
+#elif defined(Q_OS_LINUX)
+    m_ui->processPriorityLabel->hide();
+    m_ui->processPriorityCombo->hide();
+#else
+    m_ui->enableFeralGamemodeCheck->hide();
+    m_ui->enableMangoHud->hide();
+    m_ui->useZink->hide();
+    m_ui->useDiscreteGpuCheck->hide();
+    m_ui->processPriorityLabel->hide();
+    m_ui->processPriorityCombo->hide();
 #endif
 
     if (!(APPLICATION->capabilities() & Application::SupportsGameMode)) {
@@ -144,6 +157,7 @@ MinecraftSettingsWidget::MinecraftSettingsWidget(MinecraftInstance* instance, QW
 
     connect(m_ui->useNativeOpenALCheck, &QAbstractButton::toggled, m_ui->lineEditOpenALPath, &QWidget::setEnabled);
     connect(m_ui->useNativeGLFWCheck, &QAbstractButton::toggled, m_ui->lineEditGLFWPath, &QWidget::setEnabled);
+    connect(m_ui->enableOptimizedFlagsCheck, &QAbstractButton::toggled, m_ui->optimizedFlagsPresetCombo, &QWidget::setEnabled);
 
     loadSettings();
 }
@@ -223,6 +237,12 @@ void MinecraftSettingsWidget::loadSettings()
     m_ui->enableMangoHud->setChecked(settings->get("EnableMangoHud").toBool());
     m_ui->useDiscreteGpuCheck->setChecked(settings->get("UseDiscreteGpu").toBool());
     m_ui->useZink->setChecked(settings->get("UseZink").toBool());
+    m_ui->enableOptimizedFlagsCheck->setChecked(settings->get("EnableOptimizedJvmFlags").toBool());
+    m_ui->optimizedFlagsPresetCombo->setCurrentIndex(settings->get("OptimizedJvmFlagsPreset").toString() == "zgc" ? 1 : 0);
+    m_ui->optimizedFlagsPresetCombo->setEnabled(m_ui->enableOptimizedFlagsCheck->isChecked());
+    m_ui->smartHeapSizingCheck->setChecked(settings->get("SmartHeapSizing").toBool());
+    const QString processPriority = settings->get("GameProcessPriority").toString();
+    m_ui->processPriorityCombo->setCurrentIndex(processPriority == "high" ? 2 : processPriority == "abovenormal" ? 1 : 0);
 
     if (m_instance != nullptr) {
         // HACK: if we change enable state of child widgets while it's unchecked this creates inconsistency
@@ -421,11 +441,20 @@ void MinecraftSettingsWidget::saveSettings()
             settings->set("EnableMangoHud", m_ui->enableMangoHud->isChecked());
             settings->set("UseDiscreteGpu", m_ui->useDiscreteGpuCheck->isChecked());
             settings->set("UseZink", m_ui->useZink->isChecked());
+            settings->set("EnableOptimizedJvmFlags", m_ui->enableOptimizedFlagsCheck->isChecked());
+            settings->set("OptimizedJvmFlagsPreset", m_ui->optimizedFlagsPresetCombo->currentIndex() == 1 ? "zgc" : "balanced");
+            settings->set("SmartHeapSizing", m_ui->smartHeapSizingCheck->isChecked());
+            const int priorityIndex = m_ui->processPriorityCombo->currentIndex();
+            settings->set("GameProcessPriority", priorityIndex == 2 ? "high" : priorityIndex == 1 ? "abovenormal" : "normal");
         } else {
             settings->reset("EnableFeralGamemode");
             settings->reset("EnableMangoHud");
             settings->reset("UseDiscreteGpu");
             settings->reset("UseZink");
+            settings->reset("EnableOptimizedJvmFlags");
+            settings->reset("OptimizedJvmFlagsPreset");
+            settings->reset("SmartHeapSizing");
+            settings->reset("GameProcessPriority");
         }
 
         // Game time
