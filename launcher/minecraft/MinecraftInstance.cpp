@@ -641,6 +641,7 @@ QStringList MinecraftInstance::javaArguments()
     if (settings()->get("EnableOptimizedJvmFlags").toBool()) {
         JavaOptimizedFlags::Input optimizeIn;
         optimizeIn.javaMajor = javaVersion.major();
+        optimizeIn.javaSecurity = javaVersion.security();
         optimizeIn.totalRamMiB = HardwareInfo::totalRamMiB();
         optimizeIn.maxHeapMiB = maxMemAlloc;
         optimizeIn.preset = settings()->get("OptimizedJvmFlagsPreset").toString();

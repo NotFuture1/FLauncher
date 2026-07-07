@@ -8,6 +8,7 @@ namespace JavaOptimizedFlags {
 
 struct Input {
     int javaMajor = 0;         // JavaVersion::major(); 0 = unknown, generates nothing
+    int javaSecurity = 0;      // JavaVersion::security(); the "update" number on Java 8
     uint64_t totalRamMiB = 0;  // HardwareInfo::totalRamMiB()
     int maxHeapMiB = 0;        // the resolved -Xmx that will actually be used
     QString preset;            // "balanced" (default) | "zgc"

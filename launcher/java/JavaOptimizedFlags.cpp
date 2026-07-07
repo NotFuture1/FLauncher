@@ -62,6 +62,12 @@ QStringList generate(const Input& in)
     if (in.javaMajor <= 0)
         return {};
 
+    // The G1 tuning flags below only exist since 8u40; an older 8 (or one whose
+    // update number we couldn't parse) would refuse to start with them, so
+    // generate nothing rather than risk a failed launch.
+    if (in.javaMajor == 8 && in.javaSecurity < 40)
+        return {};
+
     // ZGC trades throughput and RAM for near-zero pauses; only worth it on a
     // modern JVM with heap and system memory to spare. Otherwise fall back.
     if (in.preset == "zgc" && in.javaMajor >= 21 && in.maxHeapMiB >= 6144 && in.totalRamMiB >= 16384)

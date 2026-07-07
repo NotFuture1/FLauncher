@@ -152,6 +152,7 @@ void JavaSettingsWidget::loadSettings()
     }
     m_ui->permGenSpinBox->setValue(settings->get("PermGen").toInt());
     m_ui->lowMemWarningCheckBox->setChecked(settings->get("LowMemWarning").toBool());
+    m_ui->smartHeapNotice->setVisible(settings->get("SmartHeapSizing").toBool());
 
     // Java arguments
     m_ui->javaArgumentsGroupBox->setChecked(m_instance == nullptr || settings->get("OverrideJavaArgs").toBool());

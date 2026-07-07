@@ -11,6 +11,7 @@ class JavaOptimizedFlagsTest : public QObject {
     {
         Input in;
         in.javaMajor = major;
+        in.javaSecurity = 300;  // a modern update; the 8u<40 guard has its own test
         in.totalRamMiB = ramMiB;
         in.maxHeapMiB = heapMiB;
         in.preset = preset;
@@ -83,6 +84,22 @@ class JavaOptimizedFlagsTest : public QObject {
     {
         QVERIFY(generate(makeInput(0)).isEmpty());
         QVERIFY(generate(makeInput(-1)).isEmpty());
+    }
+
+    void test_ancientJava8GeneratesNothing()
+    {
+        // the G1 tuning flags only exist since 8u40
+        auto in = makeInput(8);
+        in.javaSecurity = 33;
+        QVERIFY(generate(in).isEmpty());
+        in.javaSecurity = 0;  // unparseable update number: be conservative
+        QVERIFY(generate(in).isEmpty());
+        in.javaSecurity = 40;
+        QVERIFY(generate(in).contains("-XX:+UseG1GC"));
+        // the guard is specific to Java 8: a modern major with security 0 is fine
+        auto modern = makeInput(17);
+        modern.javaSecurity = 0;
+        QVERIFY(generate(modern).contains("-XX:+UseG1GC"));
     }
 
     void test_neverEmitsHeapFlags()

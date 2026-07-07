@@ -35,6 +35,7 @@
 
 #include "LauncherPartLaunch.h"
 
+#include <QFileInfo>
 #include <QRegularExpression>
 #include <QStandardPaths>
 
@@ -101,7 +102,26 @@ void LauncherPartLaunch::executeTask()
     QString allArgs = args.join(" ");
     emit logLine("Java arguments:\n  " + m_parent->censorPrivateInfo(allArgs) + "\n", MessageLevel::Launcher);
 
+    if (instance->settings()->get("SmartHeapSizing").toBool() && !instance->settings()->get("OverrideMemory").toBool())
+        emit logLine(tr("Memory was sized automatically (Smart heap sizing); the chosen -Xmx is shown above.") + "\n",
+                     MessageLevel::Launcher);
+
     auto javaPath = FS::ResolveExecutable(instance->settings()->get("JavaPath").toString());
+
+#ifdef Q_OS_WIN
+    // must happen before the process is created: Windows reads the GPU
+    // preference at process creation time
+    {
+        const QString javaExePath = QFileInfo(javaPath).absoluteFilePath();
+        if (instance->settings()->get("UseDiscreteGpu").toBool()) {
+            if (!WindowsPerformance::applyGpuPreference(javaExePath))
+                emit logLine(tr("Could not set the GPU preference for %1 (continuing normally).").arg(javaExePath),
+                             MessageLevel::Warning);
+        } else {
+            WindowsPerformance::clearGpuPreferenceIfOurs(javaExePath);
+        }
+    }
+#endif
 
     m_process.setProcessEnvironment(instance->createLaunchEnvironment());
 
