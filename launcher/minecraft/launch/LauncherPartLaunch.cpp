@@ -48,6 +48,10 @@
 #include "gamemode_client.h"
 #endif
 
+#ifdef Q_OS_WIN
+#include "WindowsPerformance.h"
+#endif
+
 LauncherPartLaunch::LauncherPartLaunch(LaunchTask* parent)
     : LaunchStep(parent)
     , m_process(parent->instance()->getJavaVersion().defaultsToUtf8() ? QStringConverter::Utf8 : QStringConverter::System)
@@ -154,6 +158,22 @@ void LauncherPartLaunch::executeTask()
         auto pid = m_process.processId();
         if (pid) {
             gamemode_request_start_for(pid);
+        }
+    }
+#endif
+
+#ifdef Q_OS_WIN
+    const QString processPriority = instance->settings()->get("GameProcessPriority").toString();
+    if (processPriority != "normal") {
+        if (!wrapperCommandStr.isEmpty()) {
+            // priority classes are not inherited by child processes, and the PID
+            // we hold is the wrapper's — the setting cannot reach the game
+            emit logLine(tr("Game process priority is not applied when a wrapper command is used."), MessageLevel::Warning);
+        } else if (auto pid = m_process.processId(); pid != 0) {
+            if (WindowsPerformance::setProcessPriority(pid, processPriority))
+                emit logLine(tr("Game process priority set to %1.").arg(processPriority), MessageLevel::Launcher);
+            else
+                emit logLine(tr("Could not set game process priority (continuing normally)."), MessageLevel::Warning);
         }
     }
 #endif

@@ -45,6 +45,8 @@
 
 #include "FileSystem.h"
 #include "MMCTime.h"
+#include "HardwareInfo.h"
+#include "java/JavaOptimizedFlags.h"
 #include "java/JavaVersion.h"
 
 #include "launch/LaunchTask.h"
@@ -90,6 +92,8 @@
 #include "PackProfile.h"
 
 #include "tools/BaseProfiler.h"
+
+#include <algorithm>
 
 #include <QActionGroup>
 #include <QMainWindow>
@@ -225,6 +229,10 @@ void MinecraftInstance::loadSpecificSettings()
         m_settings->registerOverride(global_settings->getSetting("EnableMangoHud"), performanceOverride);
         m_settings->registerOverride(global_settings->getSetting("UseDiscreteGpu"), performanceOverride);
         m_settings->registerOverride(global_settings->getSetting("UseZink"), performanceOverride);
+        m_settings->registerOverride(global_settings->getSetting("EnableOptimizedJvmFlags"), performanceOverride);
+        m_settings->registerOverride(global_settings->getSetting("OptimizedJvmFlagsPreset"), performanceOverride);
+        m_settings->registerOverride(global_settings->getSetting("SmartHeapSizing"), performanceOverride);
+        m_settings->registerOverride(global_settings->getSetting("GameProcessPriority"), performanceOverride);
 
         // Miscellaneous
         auto miscellaneousOverride = m_settings->registerSetting("OverrideMiscellaneous", false);
@@ -612,6 +620,33 @@ QStringList MinecraftInstance::javaArguments()
         }
     }
 
+    // Heap size is resolved up front: the optimized-flag generator below needs
+    // the final -Xmx to gate the ZGC preset; -Xms/-Xmx are emitted further down.
+    int minMemAlloc = settings()->get("MinMemAlloc").toInt();
+    int maxMemAlloc = settings()->get("MaxMemAlloc").toInt();
+    if (minMemAlloc > maxMemAlloc)
+        std::swap(minMemAlloc, maxMemAlloc);
+    JavaVersion javaVersion = getJavaVersion();
+    if (settings()->get("SmartHeapSizing").toBool() && !settings()->get("OverrideMemory").toBool()) {
+        // launch-time recommendation only, never written back to settings;
+        // an explicit per-instance memory override always wins.
+        const bool is64bit = settings()->get("JavaArchitecture").toString() != "32";
+        auto heap = JavaOptimizedFlags::recommendHeap(javaVersion.major(), HardwareInfo::totalRamMiB(), is64bit);
+        minMemAlloc = heap.minMiB;
+        maxMemAlloc = heap.maxMiB;
+    }
+
+    // Optimized GC flags come BEFORE the custom JvmArgs: HotSpot resolves
+    // duplicate -XX flags last-one-wins, so explicit user args override these.
+    if (settings()->get("EnableOptimizedJvmFlags").toBool()) {
+        JavaOptimizedFlags::Input optimizeIn;
+        optimizeIn.javaMajor = javaVersion.major();
+        optimizeIn.totalRamMiB = HardwareInfo::totalRamMiB();
+        optimizeIn.maxHeapMiB = maxMemAlloc;
+        optimizeIn.preset = settings()->get("OptimizedJvmFlagsPreset").toString();
+        args.append(JavaOptimizedFlags::generate(optimizeIn));
+    }
+
     // custom args go first. we want to override them if we have our own here.
     args.append(extraArguments());
 
@@ -646,18 +681,10 @@ QStringList MinecraftInstance::javaArguments()
     }
 #endif
 
-    int min = settings()->get("MinMemAlloc").toInt();
-    int max = settings()->get("MaxMemAlloc").toInt();
-    if (min < max) {
-        args << QString("-Xms%1m").arg(min);
-        args << QString("-Xmx%1m").arg(max);
-    } else {
-        args << QString("-Xms%1m").arg(max);
-        args << QString("-Xmx%1m").arg(min);
-    }
+    args << QString("-Xms%1m").arg(minMemAlloc);
+    args << QString("-Xmx%1m").arg(maxMemAlloc);
 
     // No PermGen in newer java.
-    JavaVersion javaVersion = getJavaVersion();
     if (javaVersion.requiresPermGen()) {
         auto permgen = settings()->get("PermGen").toInt();
         if (permgen != 64) {

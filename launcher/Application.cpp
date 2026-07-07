@@ -773,6 +773,13 @@ Application::Application(int& argc, char** argv) : QApplication(argc, argv)
         m_settings->registerSetting("UseDiscreteGpu", false);
         m_settings->registerSetting("UseZink", false);
 
+        // Optimization suite. All default-off kill switches; a user who never
+        // touches these gets a byte-identical launch.
+        m_settings->registerSetting("EnableOptimizedJvmFlags", false);
+        m_settings->registerSetting("OptimizedJvmFlagsPreset", "balanced");  // "balanced" | "zgc"
+        m_settings->registerSetting("SmartHeapSizing", false);
+        m_settings->registerSetting("GameProcessPriority", "normal");  // "normal" | "abovenormal" | "high"
+
         // Game time
         m_settings->registerSetting("ShowGameTime", true);
         m_settings->registerSetting("ShowGlobalGameTime", true);

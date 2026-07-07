@@ -437,6 +437,8 @@ set(JAVA_SOURCES
     java/JavaUtils.cpp
     java/JavaVersion.h
     java/JavaVersion.cpp
+    java/JavaOptimizedFlags.h
+    java/JavaOptimizedFlags.cpp
 
     java/JavaMetadata.h
     java/JavaMetadata.cpp
@@ -1208,6 +1210,8 @@ if(WIN32)
     set(LAUNCHER_SOURCES
         console/WindowsConsole.h
         console/WindowsConsole.cpp
+        WindowsPerformance.h
+        WindowsPerformance.cpp
         ${LAUNCHER_SOURCES}
     )
 endif()
